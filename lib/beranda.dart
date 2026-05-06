@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'service/api_service.dart';
-import 'Kelola_produk.dart';
+import 'services/api_service.dart'; // Sesuaikan path services Anda
+import 'kelola_produk.dart'; // Untuk mendapatkan Model Produk
 
 class Beranda extends StatefulWidget {
   const Beranda({super.key});
@@ -10,45 +10,60 @@ class Beranda extends StatefulWidget {
 }
 
 class _BerandaState extends State<Beranda> {
+  final ApiService _apiService = ApiService();
   String search = "";
   String selectedCategory = "Sosis";
 
-  List<dynamic> products = [];
-  bool isLoading = true;
+  List<Produk> _allProduk = [];
+  bool _isLoading = true;
+
+  // Menggunakan storageUrl dari ApiService seperti pada fungsi asli
+  final String storageUrl = "http://${ApiService.serverHost}/img/";
 
   @override
   void initState() {
     super.initState();
-    fetchProduk();
+    _fetchData();
   }
 
-  Future<void> fetchProduk() async {
-    setState(() => isLoading = true);
-
-    var data = await ApiService.getProduk();
-
-    setState(() {
-      products = data;
-      isLoading = false;
-    });
+  Future<void> _fetchData() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await _apiService.fetchProduk();
+      setState(() {
+        _allProduk = data.map((item) => Produk(
+          id: item['id'].toString(),
+          nama: item['nama'].toString(),
+          kategori: item['kategori'] ?? 'Sosis',
+          deskripsi: item['deskripsi'] ?? '',
+          stock: int.parse(item['stock'].toString()),
+          harga: double.parse(item['harga'].toString()),
+          imageUrl: item['image_url'] ?? '',
+        )).toList();
+      });
+    } catch (e) {
+      debugPrint("Gagal muat Beranda: $e");
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
-  List<dynamic> get filteredProducts {
+  // Filter gabungan Kategori & Search
+  List<Produk> get filteredProducts {
     final keyword = search.toLowerCase();
+    return _allProduk.where((p) {
+      final matchesSearch = p.nama.toLowerCase().contains(keyword) || 
+                            p.deskripsi.toLowerCase().contains(keyword);
+      
+      // Jika sedang mencari (search tidak kosong), tampilkan global
+      if (keyword.isNotEmpty) return matchesSearch;
 
-    return products.where((p) {
-      final nama = (p['nama'] ?? '').toString().toLowerCase();
-      final deskripsi = (p['deskripsi'] ?? '').toString().toLowerCase();
-      final kategori = (p['kategori'] ?? '').toString().toLowerCase();
-
-      if (keyword.isNotEmpty) {
-        return nama.contains(keyword) || deskripsi.contains(keyword);
-      }
-
-      return kategori == selectedCategory.toLowerCase();
+      // Jika tidak mencari, filter berdasarkan kategori
+      return p.kategori.toLowerCase() == selectedCategory.toLowerCase();
     }).toList();
   }
 
+  // UI Tombol Kategori dari Versi 1
   Widget categoryButton(String title) {
     bool isSelected = selectedCategory == title;
     return Expanded(
@@ -64,9 +79,7 @@ class _BerandaState extends State<Beranda> {
           margin: const EdgeInsets.symmetric(horizontal: 5),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected
-                ? const Color(0xFF4919B9)
-                : const Color(0xFFD9D9D9),
+            color: isSelected ? const Color(0xFF4919B9) : const Color(0xFFD9D9D9),
             borderRadius: BorderRadius.circular(50),
             boxShadow: isSelected
                 ? [
@@ -92,13 +105,11 @@ class _BerandaState extends State<Beranda> {
     );
   }
 
-  /// 🔥 FIX GAMBAR DI SINI
-  Widget productCard(dynamic product) {
-    String imageUrl = product["image_url"] ?? "";
-
+  // UI Kartu Produk dari Versi 1 (dengan data dari Model Produk)
+  Widget productCard(Produk produk) {
     return Expanded(
       child: Container(
-        height: 210,
+        height: 220, // Sedikit disesuaikan agar teks muat
         margin: const EdgeInsets.all(8),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
@@ -116,36 +127,23 @@ class _BerandaState extends State<Beranda> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
-                      height: 80,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        print("ERROR LOAD IMAGE: $imageUrl");
-                        return Container(
-                          height: 80,
-                          color: const Color(0xFF6B3DD1),
-                          child: const Center(
-                            child: Icon(Icons.image_not_supported,
-                                color: Colors.white54, size: 32),
-                          ),
-                        );
-                      },
-                    )
-                  : Container(
-                      height: 80,
-                      color: const Color(0xFF6B3DD1),
-                      child: const Center(
-                        child: Icon(Icons.image,
-                            color: Colors.white54, size: 32),
-                      ),
-                    ),
+              child: Image.network(
+                "$storageUrl${produk.imageUrl}",
+                height: 80,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  height: 80,
+                  color: const Color(0xFF6B3DD1),
+                  child: const Center(
+                    child: Icon(Icons.fastfood, color: Colors.white54, size: 32),
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              product["nama"] ?? "",
+              produk.nama,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -156,15 +154,14 @@ class _BerandaState extends State<Beranda> {
             const SizedBox(height: 4),
             Expanded(
               child: Text(
-                product["deskripsi"] ?? "",
+                produk.deskripsi,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style:
-                    const TextStyle(color: Colors.white70, fontSize: 10),
+                style: const TextStyle(color: Colors.white70, fontSize: 10),
               ),
             ),
             Text(
-              "Rp ${product["harga"]}",
+              "Rp ${produk.harga.toInt()}",
               style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold),
@@ -179,6 +176,7 @@ class _BerandaState extends State<Beranda> {
   Widget build(BuildContext context) {
     final data = filteredProducts;
 
+    // Logika baris (row) manual agar tampilan sama dengan permintaan
     List<Widget> productRows = [];
     for (int i = 0; i < data.length; i += 2) {
       productRows.add(
@@ -205,21 +203,21 @@ class _BerandaState extends State<Beranda> {
         ),
         child: SafeArea(
           child: RefreshIndicator(
-            onRefresh: fetchProduk, // 🔥 tarik refresh
+            onRefresh: _fetchData,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  /// HEADER
+                  /// HEADER (UI VERSI 1)
                   Row(
                     children: [
                       CircleAvatar(
                         radius: 45,
                         backgroundColor: Colors.white,
-                        backgroundImage:
-                            const AssetImage("assets/logo_refi.png"),
+                        backgroundImage: const AssetImage("assets/logo_refi.png"),
+                        onBackgroundImageError: (_, __) {},
                       ),
                       const SizedBox(width: 10),
                       Column(
@@ -241,28 +239,12 @@ class _BerandaState extends State<Beranda> {
                           ),
                         ],
                       ),
-
-                      const Spacer(),
-
-                      /// 🔥 KE KELOLA PRODUK + AUTO REFRESH
-                      IconButton(
-                        icon: const Icon(Icons.settings),
-                        onPressed: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const KelolaProdukPage()),
-                          );
-
-                          fetchProduk(); // refresh setelah balik
-                        },
-                      )
                     ],
                   ),
 
                   const SizedBox(height: 20),
 
-                  /// SEARCH
+                  /// SEARCH (UI VERSI 1)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
@@ -296,7 +278,7 @@ class _BerandaState extends State<Beranda> {
 
                   const SizedBox(height: 20),
 
-                  /// LABEL
+                  /// LABEL KATEGORI
                   Text(
                     selectedCategory,
                     style: const TextStyle(
@@ -307,8 +289,8 @@ class _BerandaState extends State<Beranda> {
 
                   const SizedBox(height: 10),
 
-                  /// PRODUK
-                  if (isLoading)
+                  /// LIST PRODUK
+                  if (_isLoading)
                     const Center(
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 40),
@@ -320,8 +302,7 @@ class _BerandaState extends State<Beranda> {
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 40),
                         child: Text("Produk tidak ditemukan",
-                            style: TextStyle(
-                                fontSize: 16, color: Colors.grey)),
+                            style: TextStyle(fontSize: 16, color: Colors.grey)),
                       ),
                     )
                   else
