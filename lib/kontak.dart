@@ -45,7 +45,7 @@ class KontakPage extends StatelessWidget {
                 ),
               ),
 
-              // ── CARD INFORMASI USAHA ──
+          
               _buildCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
