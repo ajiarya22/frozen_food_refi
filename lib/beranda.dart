@@ -28,10 +28,8 @@ class _BerandaState extends State<Beranda> {
 
   Future<void> _fetchData() async {
     setState(() => _isLoading = true);
-
     try {
       final data = await _apiService.fetchProduk();
-
       setState(() {
         _allProduk = data
             .map((item) => Produk(
@@ -54,21 +52,16 @@ class _BerandaState extends State<Beranda> {
 
   List<Produk> get filteredProducts {
     final keyword = search.toLowerCase();
-
     return _allProduk.where((p) {
       final matchesSearch = p.nama.toLowerCase().contains(keyword) ||
           p.deskripsi.toLowerCase().contains(keyword);
-
       if (keyword.isNotEmpty) return matchesSearch;
-
-      return p.kategori.toLowerCase() ==
-          selectedCategory.toLowerCase();
+      return p.kategori.toLowerCase() == selectedCategory.toLowerCase();
     }).toList();
   }
 
   Widget categoryButton(String title) {
     bool isSelected = selectedCategory == title;
-
     return Expanded(
       child: GestureDetector(
         onTap: () {
@@ -88,7 +81,7 @@ class _BerandaState extends State<Beranda> {
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: const Color(0xFF5A22D6).withOpacity(0.3),
+                      color: const Color(0xFF5A22D6).withValues(alpha: 0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     )
@@ -113,81 +106,86 @@ class _BerandaState extends State<Beranda> {
   Widget productCard(Produk produk) {
     return Expanded(
       child: Container(
-        height: 240,
-        margin: const EdgeInsets.all(8),
-        padding: const EdgeInsets.all(10),
+        margin: const EdgeInsets.all(7),
         decoration: BoxDecoration(
           color: const Color(0xFF4C1FD3),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(15),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.12),
-              blurRadius: 8,
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 10,
               offset: const Offset(0, 5),
             ),
           ],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                "$storageUrl${produk.imageUrl}",
-                height: 95,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 95,
-                    color: const Color(0xFF6B3DD1),
-                    child: const Center(
-                      child: Icon(
-                        Icons.fastfood,
-                        color: Colors.white54,
-                        size: 35,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
 
-            const SizedBox(height: 10),
-
-            Text(
-              produk.nama,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-
-            const SizedBox(height: 5),
-
-            Expanded(
-              child: Text(
-                produk.deskripsi,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 11,
+            // Gambar diberi jarak 8px dari tepi card biru
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: AspectRatio(
+                  aspectRatio: 1.1,
+                  child: Image.network(
+                    "$storageUrl${produk.imageUrl}",
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: const Color(0xFF6B3DD1),
+                        child: const Center(
+                          child: Icon(
+                            Icons.fastfood,
+                            color: Colors.white54,
+                            size: 40,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
 
-            const SizedBox(height: 6),
-
-            Text(
-              "Rp. ${produk.harga.toInt()}",
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
+            // Info produk
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    produk.nama,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    produk.deskripsi,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    "Rp. ${produk.harga.toInt()}",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -201,17 +199,19 @@ class _BerandaState extends State<Beranda> {
     final data = filteredProducts;
 
     List<Widget> productRows = [];
-
     for (int i = 0; i < data.length; i += 2) {
       productRows.add(
-        Row(
-          children: [
-            productCard(data[i]),
-            if (i + 1 < data.length)
-              productCard(data[i + 1])
-            else
-              const Expanded(child: SizedBox()),
-          ],
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              productCard(data[i]),
+              if (i + 1 < data.length)
+                productCard(data[i + 1])
+              else
+                const Expanded(child: SizedBox()),
+            ],
+          ),
         ),
       );
     }
@@ -244,7 +244,7 @@ class _BerandaState extends State<Beranda> {
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.15),
+                                  color: Colors.black.withValues(alpha: 0.15),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
                                 )
@@ -257,13 +257,10 @@ class _BerandaState extends State<Beranda> {
                               onBackgroundImageError: (_, __) {},
                             ),
                           ),
-
                           const SizedBox(width: 14),
-
                           const Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   "Selamat Datang Di",
@@ -293,8 +290,7 @@ class _BerandaState extends State<Beranda> {
                       /// SEARCH
                       Container(
                         height: 45,
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 14),
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFFF8F8),
                           borderRadius: BorderRadius.circular(30),
@@ -327,67 +323,59 @@ class _BerandaState extends State<Beranda> {
                   ),
                 ),
 
-                /// BACKGROUND PUTIH
+                /// BACKGROUND PUTIH — margin kiri kanan agar bg utama terlihat
                 Transform.translate(
                   offset: const Offset(0, -15),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(16, 22, 16, 20),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(35),
-                        topRight: Radius.circular(35),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(16, 22, 16, 20),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(15),
+                          topRight: Radius.circular(15),
+                        ),
                       ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        /// KATEGORI
-                        Row(
-                          children: [
-                            categoryButton("Sosis"),
-                            categoryButton("Nugget"),
-                            categoryButton("Bakso"),
-                          ],
-                        ),
-
-                        const SizedBox(height: 22),
-
-                        Text(
-                          selectedCategory,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF4C1FD3),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          /// KATEGORI
+                          Row(
+                            children: [
+                              categoryButton("Sosis"),
+                              categoryButton("Nugget"),
+                              categoryButton("Bakso"),
+                            ],
                           ),
-                        ),
 
-                        const SizedBox(height: 10),
+                          const SizedBox(height: 22),
 
-                        if (_isLoading)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 40),
-                            child: Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                          )
-                        else if (data.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 40),
-                            child: Center(
-                              child: Text(
-                                "Produk tidak ditemukan",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey,
+                          if (_isLoading)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 40),
+                              child: Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            )
+                          else if (data.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 40),
+                              child: Center(
+                                child: Text(
+                                  "Produk tidak ditemukan",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                  ),
                                 ),
                               ),
-                            ),
-                          )
-                        else
-                          ...productRows,
-                      ],
+                            )
+                          else
+                            ...productRows,
+                        ],
+                      ),
                     ),
                   ),
                 ),
