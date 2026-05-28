@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'beranda_admin.dart';
 
 class DetailPesananPage extends StatefulWidget {
@@ -16,7 +17,89 @@ class DetailPesananPage extends StatefulWidget {
 }
 
 class _DetailPesananPageState extends State<DetailPesananPage> {
-  static const String serverHost = "192.168.18.195";
+  static const String serverHost = "192.168.18.229";
+
+  // ================= WHATSAPP =================
+  Future<void> sendWhatsAppAuto() async {
+    const String token = "SGiUXtd9M3JPsDLRN9Za";
+
+    String phone =
+        widget.order.phone.replaceAll(RegExp(r'[^0-9]'), '');
+
+    // otomatis ubah 08 -> 628
+    if (phone.startsWith("08")) {
+      phone = "62${phone.substring(1)}";
+    }
+
+    // ================= DETAIL PRODUK =================
+    String productList = "";
+
+    for (var item in widget.order.items) {
+      productList += "- ${item.name} (${item.qty}x)\n";
+    }
+
+    // ================= TOTAL ITEM =================
+    int totalItem = 0;
+
+    for (var item in widget.order.items) {
+      totalItem += item.qty;
+    }
+
+    // ================= ID PESANAN =================
+    String orderId = widget.order.id.toString();
+
+    // ================= TEMPLATE PESAN =================
+    final String message = '''
+Halo ${widget.order.name} 👋
+
+Pesanan Anda sudah selesai dan siap diambil ✅
+
+📌 Detail Pesanan:
+🆔 ID Pesanan : $orderId
+🛒 Jumlah Item : $totalItem
+💰 Total Bayar : Rp ${widget.order.total}
+
+📦 Produk:
+$productList
+
+Terima kasih sudah memesan 🙏
+''';
+
+    try {
+      final response = await http.post(
+        Uri.parse("https://api.fonnte.com/send"),
+        headers: {
+          "Authorization": token,
+        },
+        body: {
+          "target": phone,
+          "message": message,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("WA berhasil dikirim"),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Gagal kirim WA: ${response.body}",
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("ERROR: $e"),
+        ),
+      );
+    }
+  }
 
   // ================= URL GAMBAR =================
   String getImageUrl(String path) {
@@ -25,7 +108,7 @@ class _DetailPesananPageState extends State<DetailPesananPage> {
     path = path.trim();
     path = path.replaceAll("\\", "/");
     path = path.replaceAll("localhost", serverHost);
-    path = path.replaceAll("192.168.18.195", serverHost);
+    path = path.replaceAll("192.168.1.11", serverHost);
 
     if (path.startsWith("http://") ||
         path.startsWith("https://")) {
@@ -40,44 +123,36 @@ class _DetailPesananPageState extends State<DetailPesananPage> {
       path = "img/$path";
     }
 
-    return Uri.encodeFull("http://$serverHost/$path");
+    return Uri.encodeFull(
+      "http://$serverHost/$path",
+    );
   }
 
-  // ================= DIALOG STATUS =================
-  void _showStatusDialog(OrderStatus newStatus) {
-    final bool isSelesai =
-        newStatus == OrderStatus.selesai;
-
-    final String title = isSelesai
-        ? "Selesaikan Pesanan?"
-        : "Proses Pesanan?";
-
-    final Color themeColor = isSelesai
-        ? const Color(0xFF34C759)
-        : const Color(0xFFFF8605);
-
+  // ================= DIALOG SELESAI =================
+  void _showStatusDialog() {
     showDialog(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
           alignment: Alignment.topCenter,
-          backgroundColor: themeColor,
+          backgroundColor: const Color(0xFF34C759),
+
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
           ),
 
-          title: Row(
+          title: const Row(
             children: [
               Icon(
-                isSelesai
-                    ? Icons.check_circle
-                    : Icons.sync,
+                Icons.check_circle,
                 color: Colors.white,
               ),
-              const SizedBox(width: 10),
+
+              SizedBox(width: 10),
+
               Text(
-                title,
-                style: const TextStyle(
+                "Selesaikan Pesanan?",
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                 ),
@@ -85,10 +160,12 @@ class _DetailPesananPageState extends State<DetailPesananPage> {
             ],
           ),
 
-          content: Text(
-            "Anda akan mengubah status pesanan ini menjadi "
-            "${isSelesai ? 'SELESAI' : 'DIPROSES'}.",
-            style: const TextStyle(color: Colors.white),
+          content: const Text(
+            "Anda akan mengubah status pesanan ini menjadi SELESAI.",
+
+            style: TextStyle(
+              color: Colors.white,
+            ),
           ),
 
           actions: [
@@ -96,19 +173,27 @@ class _DetailPesananPageState extends State<DetailPesananPage> {
               onPressed: () {
                 Navigator.pop(dialogContext);
               },
+
               child: const Text(
                 "BATAL",
-                style: TextStyle(color: Colors.white70),
+
+                style: TextStyle(
+                  color: Colors.white70,
+                ),
               ),
             ),
 
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
-                foregroundColor: themeColor,
+                foregroundColor: const Color(0xFF34C759),
               ),
-              onPressed: () {
-                updateOrderStatus(widget.order, newStatus);
+
+              onPressed: () async {
+                updateOrderStatus(
+                  widget.order,
+                  OrderStatus.selesai,
+                );
 
                 widget.onStatusChanged();
 
@@ -116,21 +201,21 @@ class _DetailPesananPageState extends State<DetailPesananPage> {
 
                 Navigator.pop(dialogContext);
 
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(
+                await sendWhatsAppAuto();
+
+                ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
-                      isSelesai
-                          ? "Pesanan selesai! Cek di laporan."
-                          : "Status berhasil diperbarui!",
+                    content: const Text(
+                      "Pesanan selesai & WA terkirim!",
                     ),
-                    backgroundColor: isSelesai
-                        ? Colors.green[800]
-                        : Colors.orange[800],
+
+                    backgroundColor: Colors.green[800],
+
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
               },
+
               child: const Text("YA, UBAH"),
             ),
           ],
@@ -142,8 +227,6 @@ class _DetailPesananPageState extends State<DetailPesananPage> {
   @override
   Widget build(BuildContext context) {
     final o = widget.order;
-
-    print("METODE DB = ${o.metode}");
 
     return Scaffold(
       backgroundColor: const Color(0xFF9CA7D2),
@@ -164,6 +247,7 @@ class _DetailPesananPageState extends State<DetailPesananPage> {
             // ================= CARD =================
             Card(
               elevation: 3,
+
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15),
               ),
@@ -188,15 +272,15 @@ class _DetailPesananPageState extends State<DetailPesananPage> {
                           : 'Tunai',
                     ),
 
-                    const Divider(height: 30, thickness: 1),
+                    const Divider(
+                      height: 30,
+                      thickness: 1,
+                    ),
 
                     // ================= LIST PRODUK =================
                     ...o.items.map((item) {
                       final imageUrl =
                           getImageUrl(item.imageUrl);
-
-                      print("IMAGE DB = ${item.imageUrl}");
-                      print("FINAL URL = $imageUrl");
 
                       return Padding(
                         padding: const EdgeInsets.symmetric(
@@ -220,25 +304,21 @@ class _DetailPesananPageState extends State<DetailPesananPage> {
                                       gaplessPlayback: true,
                                       cacheWidth: 300,
 
-                                      loadingBuilder:
-                                          (
+                                      loadingBuilder: (
                                         context,
                                         child,
                                         progress,
                                       ) {
-                                        if (progress ==
-                                            null) {
+                                        if (progress == null) {
                                           return child;
                                         }
 
                                         return Container(
                                           width: 60,
                                           height: 60,
-                                          color:
-                                              Colors.grey[200],
+                                          color: Colors.grey[200],
 
-                                          child:
-                                              const Center(
+                                          child: const Center(
                                             child:
                                                 CircularProgressIndicator(
                                               strokeWidth: 2,
@@ -247,20 +327,11 @@ class _DetailPesananPageState extends State<DetailPesananPage> {
                                         );
                                       },
 
-                                      errorBuilder:
-                                          (
+                                      errorBuilder: (
                                         context,
                                         error,
                                         stackTrace,
                                       ) {
-                                        print(
-                                          "ERROR IMAGE = $error",
-                                        );
-
-                                        print(
-                                          "FAILED URL = $imageUrl",
-                                        );
-
                                         return _placeholder();
                                       },
                                     ),
@@ -268,18 +339,17 @@ class _DetailPesananPageState extends State<DetailPesananPage> {
 
                             const SizedBox(width: 12),
 
-                            // ================= DETAIL PRODUK =================
+                            // ================= DETAIL =================
                             Expanded(
                               child: Column(
                                 crossAxisAlignment:
-                                    CrossAxisAlignment
-                                        .start,
+                                    CrossAxisAlignment.start,
 
                                 children: [
                                   Text(
                                     item.name,
-                                    style:
-                                        const TextStyle(
+
+                                    style: const TextStyle(
                                       fontWeight:
                                           FontWeight.bold,
                                       fontSize: 16,
@@ -290,22 +360,21 @@ class _DetailPesananPageState extends State<DetailPesananPage> {
 
                                   Text(
                                     '${item.qty} x Rp ${item.price}',
-                                    style:
-                                        const TextStyle(
-                                      color:
-                                          Colors.grey,
+
+                                    style: const TextStyle(
+                                      color: Colors.grey,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
 
-                            // ================= TOTAL ITEM =================
+                            // ================= TOTAL =================
                             Text(
                               'Rp ${item.qty * item.price}',
+
                               style: const TextStyle(
-                                fontWeight:
-                                    FontWeight.bold,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
@@ -313,9 +382,12 @@ class _DetailPesananPageState extends State<DetailPesananPage> {
                       );
                     }),
 
-                    const Divider(height: 30, thickness: 1),
+                    const Divider(
+                      height: 30,
+                      thickness: 1,
+                    ),
 
-                    // ================= TOTAL =================
+                    // ================= TOTAL BAYAR =================
                     Row(
                       mainAxisAlignment:
                           MainAxisAlignment.spaceBetween,
@@ -323,19 +395,19 @@ class _DetailPesananPageState extends State<DetailPesananPage> {
                       children: [
                         const Text(
                           'Total Pembayaran',
+
                           style: TextStyle(
                             fontSize: 16,
-                            fontWeight:
-                                FontWeight.bold,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
 
                         Text(
                           'Rp ${o.total}',
+
                           style: const TextStyle(
                             fontSize: 18,
-                            fontWeight:
-                                FontWeight.bold,
+                            fontWeight: FontWeight.bold,
                             color: Colors.blue,
                           ),
                         ),
@@ -349,83 +421,40 @@ class _DetailPesananPageState extends State<DetailPesananPage> {
             const SizedBox(height: 30),
 
             // ================= BUTTON =================
-            Row(
-              children: [
-                // ================= DIPROSES =================
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      _showStatusDialog(
-                        OrderStatus.diproses,
-                      );
-                    },
+            if (o.status != OrderStatus.selesai)
+              SizedBox(
+                width: double.infinity,
 
-                    style:
-                        ElevatedButton.styleFrom(
-                      backgroundColor:
-                          const Color(0xFFFF8605),
+                child: ElevatedButton(
+                  onPressed: () {
+                    _showStatusDialog();
+                  },
 
-                      padding:
-                          const EdgeInsets.symmetric(
-                        vertical: 15,
-                      ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        const Color(0xFF34C759),
 
-                      shape:
-                          RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(12),
-                      ),
+                    padding:
+                        const EdgeInsets.symmetric(
+                      vertical: 15,
                     ),
 
-                    child: const Text(
-                      'Set Diproses',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                      ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(12),
+                    ),
+                  ),
+
+                  child: const Text(
+                    'Selesaikan Pesanan',
+
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
                     ),
                   ),
                 ),
-
-                const SizedBox(width: 10),
-
-                // ================= SELESAI =================
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      _showStatusDialog(
-                        OrderStatus.selesai,
-                      );
-                    },
-
-                    style:
-                        ElevatedButton.styleFrom(
-                      backgroundColor:
-                          const Color(0xFF34C759),
-
-                      padding:
-                          const EdgeInsets.symmetric(
-                        vertical: 15,
-                      ),
-
-                      shape:
-                          RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(12),
-                      ),
-                    ),
-
-                    child: const Text(
-                      'Set Selesai',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
           ],
         ),
       ),
@@ -466,6 +495,7 @@ class _DetailPesananPageState extends State<DetailPesananPage> {
 
             child: Text(
               '$label:',
+
               style: const TextStyle(
                 color: Colors.grey,
               ),
@@ -475,9 +505,9 @@ class _DetailPesananPageState extends State<DetailPesananPage> {
           Expanded(
             child: Text(
               value,
+
               style: const TextStyle(
-                fontWeight:
-                    FontWeight.bold,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
