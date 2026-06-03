@@ -4,6 +4,7 @@ import 'beranda_admin.dart';
 
 class DetailPesananPage extends StatefulWidget {
   final Order order;
+  // Callback untuk memberitahu halaman sebelumnya bahwa status pesanan telah berubah
   final VoidCallback onStatusChanged;
 
   const DetailPesananPage({
@@ -17,7 +18,7 @@ class DetailPesananPage extends StatefulWidget {
 }
 
 class _DetailPesananPageState extends State<DetailPesananPage> {
-  static const String serverHost = "192.168.18.229";
+  static const String serverHost = "192.168.1.18";
 
   // ================= WHATSAPP =================
   Future<void> sendWhatsAppAuto() async {
@@ -33,19 +34,19 @@ class _DetailPesananPageState extends State<DetailPesananPage> {
 
     // ================= DETAIL PRODUK =================
     String productList = "";
-
+    // Membuat daftar produk dalam format yang rapi
     for (var item in widget.order.items) {
       productList += "- ${item.name} (${item.qty}x)\n";
     }
 
     // ================= TOTAL ITEM =================
     int totalItem = 0;
-
+    // Menghitung total item dengan menjumlahkan qty dari setiap produk
     for (var item in widget.order.items) {
       totalItem += item.qty;
     }
 
-    // ================= ID PESANAN =================
+    // Mengambil ID pesanan untuk dimasukkan ke dalam pesan WhatsApp
     String orderId = widget.order.id.toString();
 
     // ================= TEMPLATE PESAN =================
@@ -64,7 +65,7 @@ $productList
 
 Terima kasih sudah memesan 🙏
 ''';
-
+    // ================= KIRIM PESAN =================
     try {
       final response = await http.post(
         Uri.parse("https://api.fonnte.com/send"),
@@ -76,7 +77,7 @@ Terima kasih sudah memesan 🙏
           "message": message,
         },
       );
-
+      // Menampilkan snackbar berdasarkan hasil pengiriman pesan
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -102,9 +103,10 @@ Terima kasih sudah memesan 🙏
   }
 
   // ================= URL GAMBAR =================
+  // Fungsi untuk mendapatkan URL gambar yang benar dari path yang diberikan
   String getImageUrl(String path) {
     if (path.isEmpty) return "";
-
+    // Menghilangkan spasi dan mengganti backslash dengan slash agar menjadi format URL yang benar
     path = path.trim();
     path = path.replaceAll("\\", "/");
     path = path.replaceAll("localhost", serverHost);
@@ -223,7 +225,7 @@ Terima kasih sudah memesan 🙏
       },
     );
   }
-
+  // ================= BUILD UI =================
   @override
   Widget build(BuildContext context) {
     final o = widget.order;
@@ -235,6 +237,7 @@ Terima kasih sudah memesan 🙏
       appBar: AppBar(
         title: const Text('Detail Pesanan'),
         backgroundColor: Colors.transparent,
+        // Menghilangkan bayangan pada appbar agar terlihat lebih menyatu dengan background
         elevation: 0,
       ),
 
@@ -247,11 +250,11 @@ Terima kasih sudah memesan 🙏
             // ================= CARD =================
             Card(
               elevation: 3,
-
+              // Membuat card dengan sudut melengkung agar terlihat lebih modern
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15),
               ),
-
+              // Memberikan ruang kosong di dalam card agar konten tidak terlalu mepet dengan tepi card
               child: Padding(
                 padding: const EdgeInsets.all(16),
 
@@ -278,10 +281,11 @@ Terima kasih sudah memesan 🙏
                     ),
 
                     // ================= LIST PRODUK =================
+                    // Menampilkan daftar produk yang dipesan dengan gambar, nama, harga, dan total harga per item
                     ...o.items.map((item) {
                       final imageUrl =
                           getImageUrl(item.imageUrl);
-
+                      // Memberi jarak antar item agar tidak terlalu rapat dan mudah dibaca
                       return Padding(
                         padding: const EdgeInsets.symmetric(
                           vertical: 8,
@@ -290,10 +294,11 @@ Terima kasih sudah memesan 🙏
                         child: Row(
                           children: [
                             // ================= GAMBAR =================
+                            // Memotong gambar dengan sudut melengkung agar terlihat lebih menarik
                             ClipRRect(
                               borderRadius:
                                   BorderRadius.circular(8),
-
+                              // Menampilkan ikon makanan sebagai placeholder jika gambar tidak tersedia atau sedang dimuat
                               child: imageUrl.isEmpty
                                   ? _placeholder()
                                   : Image.network(
@@ -389,6 +394,7 @@ Terima kasih sudah memesan 🙏
 
                     // ================= TOTAL BAYAR =================
                     Row(
+                      // Mengatur jarak antara label "Total Pembayaran" dan jumlah total agar berada di ujung kiri dan kanan
                       mainAxisAlignment:
                           MainAxisAlignment.spaceBetween,
 
@@ -421,10 +427,11 @@ Terima kasih sudah memesan 🙏
             const SizedBox(height: 30),
 
             // ================= BUTTON =================
+            // Menampilkan tombol "Selesaikan Pesanan" hanya jika status pesanan belum selesai
             if (o.status != OrderStatus.selesai)
               SizedBox(
                 width: double.infinity,
-
+              
                 child: ElevatedButton(
                   onPressed: () {
                     _showStatusDialog();
@@ -461,7 +468,7 @@ Terima kasih sudah memesan 🙏
     );
   }
 
-  // ================= PLACEHOLDER =================
+  // Placegolder untuk gambar jika URL tidak valid atau sedang dimuat
   Widget _placeholder() {
     return Container(
       width: 60,
@@ -475,7 +482,7 @@ Terima kasih sudah memesan 🙏
     );
   }
 
-  // ================= INFO ROW =================
+  // Widget untuk membuat satu baris informasi dengan label dan nilai
   Widget _infoRow(
     String label,
     String value,
