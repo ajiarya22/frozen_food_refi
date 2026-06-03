@@ -11,10 +11,10 @@ class Beranda extends StatefulWidget {
 
 class _BerandaState extends State<Beranda> {
   final ApiService _apiService = ApiService();
-
+  // Menyimpan data search dan kategori yang dipilih
   String search = "";
   String selectedCategory = "Sosis";
-
+  // Menyimpan semua produk yang diambil dari API
   List<Produk> _allProduk = [];
   bool _isLoading = true;
 
@@ -25,7 +25,7 @@ class _BerandaState extends State<Beranda> {
     super.initState();
     _fetchData();
   }
-
+  // Mengambil data produk dari API dan menyimpannya dalam _allProduk
   Future<void> _fetchData() async {
     setState(() => _isLoading = true);
     try {
@@ -49,7 +49,7 @@ class _BerandaState extends State<Beranda> {
       setState(() => _isLoading = false);
     }
   }
-
+  // Menghasilkan daftar produk yang sudah difilter berdasarkan search dan kategori
   List<Produk> get filteredProducts {
     final keyword = search.toLowerCase();
     return _allProduk.where((p) {
@@ -59,7 +59,7 @@ class _BerandaState extends State<Beranda> {
       return p.kategori.toLowerCase() == selectedCategory.toLowerCase();
     }).toList();
   }
-
+  // Membuat widget tombol kategori dengan animasi dan efek bayangan saat dipilih
   Widget categoryButton(String title) {
     bool isSelected = selectedCategory == title;
     return Expanded(
@@ -102,7 +102,7 @@ class _BerandaState extends State<Beranda> {
       ),
     );
   }
-
+  // Membuat widget kartu produk dengan gambar, nama, deskripsi, dan harga
   Widget productCard(Produk produk) {
     return Expanded(
       child: Container(
@@ -151,14 +151,17 @@ class _BerandaState extends State<Beranda> {
 
             // Info produk
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+            child: SizedBox(
+            width: double.infinity,
+            child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     produk.nama,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.left,
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -170,6 +173,7 @@ class _BerandaState extends State<Beranda> {
                     produk.deskripsi,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.left,
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 11,
@@ -179,6 +183,7 @@ class _BerandaState extends State<Beranda> {
                   const SizedBox(height: 10),
                   Text(
                     "Rp. ${produk.harga.toInt()}",
+                    textAlign: TextAlign.left,
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -188,7 +193,8 @@ class _BerandaState extends State<Beranda> {
                 ],
               ),
             ),
-          ],
+          ),
+        ],
         ),
       ),
     );
@@ -215,7 +221,7 @@ class _BerandaState extends State<Beranda> {
         ),
       );
     }
-
+    // Scaffold utama dengan background dan struktur halaman
     return Scaffold(
       backgroundColor: const Color(0xFFB0B7E3),
       body: SafeArea(

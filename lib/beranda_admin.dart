@@ -17,7 +17,7 @@ class OrderItem {
   final String name;
   final int qty;
   final int price;
-
+// ================= KONSTRUKTOR =================
   const OrderItem({
     required this.imageUrl,
     required this.name,
@@ -54,7 +54,7 @@ class Order {
   final String metode;
 
   OrderStatus status;
-
+// Menyimpan list item dalam order
   final List<OrderItem> items;
 
   Order({
@@ -66,7 +66,7 @@ class Order {
     required this.items,
     required this.metode,
   });
-
+// Hitung total harga berdasarkan item dan qty
   int get total =>
       items.fold(
         0,
@@ -94,7 +94,7 @@ class Order {
           json['status'] == 'selesai'
               ? OrderStatus.selesai
               : OrderStatus.diproses,
-
+      // Parsing list item dari JSON
       items:
           (json['items'] as List? ?? [])
               .map(
@@ -113,7 +113,7 @@ class Order {
   }
 }
 
-// ================= GLOBAL ORDER =================
+// Menyimpan list order dalam ValueNotifier untuk update UI otomatis
 final ordersNotifier =
     ValueNotifier<List<Order>>([]);
 
@@ -126,7 +126,7 @@ void updateOrderStatus(
   OrderStatus newStatus,
 ) async {
   order.status = newStatus;
-
+// Update UI secara langsung tanpa reload semua data
   ordersNotifier.notifyListeners();
 
   await ApiService().updateStatus(
@@ -168,6 +168,7 @@ class DaftarOrderPage
 
 class _DaftarOrderPageState
     extends State<DaftarOrderPage> {
+  // Controller untuk search bar
   final _searchCtrl =
       TextEditingController();
 
@@ -178,13 +179,13 @@ class _DaftarOrderPageState
     super.initState();
     loadOrders();
   }
-
+  // Pastikan untuk membersihkan controller saat widget dihapus dari tree
   @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
   }
-
+// ================= BUILD UI =================
   @override
   Widget build(
     BuildContext context,
@@ -206,6 +207,7 @@ class _DaftarOrderPageState
                 _,
               ) {
                final list = orderList
+    // Filter berdasarkan query pencarian
     .where(
       (o) => o.name
           .toLowerCase()
@@ -278,7 +280,7 @@ final latestOrders = list.take(10).toList();
           const EdgeInsets.symmetric(
             horizontal: 16,
           ),
-
+// Membuat search bar dengan TextField/kotak dan dekorasi yang menarik
       child: TextField(
         controller: _searchCtrl,
 
@@ -291,7 +293,7 @@ final latestOrders = list.take(10).toList();
 
         decoration: InputDecoration(
           hintText: 'Cari nama...',
-
+          // Membuat ikon pencarian di dalam TextField
           prefixIcon: const Icon(
             Icons.search,
           ),
@@ -304,11 +306,11 @@ final latestOrders = list.take(10).toList();
                 BorderRadius.circular(
                   25,
                 ),
-
+            // Menghilangkan border default pada TextField agar lebih rapi
             borderSide:
                 BorderSide.none,
           ),
-
+          // Menghilangkan padding default pada TextField agar lebih rapi
           contentPadding:
               EdgeInsets.zero,
         ),
@@ -327,7 +329,7 @@ final latestOrders = list.take(10).toList();
         ),
       );
     }
-
+    // Membuat daftar order yang bisa di scroll
     return ListView.builder(
       padding:
           const EdgeInsets.symmetric(
@@ -335,7 +337,7 @@ final latestOrders = list.take(10).toList();
           ),
 
       itemCount: list.length,
-
+      // Membuat setiap item order menggunakan widget OrderCard
       itemBuilder:
           (context, index) => OrderCard(
             order: list[index],
@@ -365,7 +367,9 @@ class OrderCard extends StatelessWidget {
 
     return Card(
       color: Colors.white,
+      // Memberikan bayangan pada card agar terlihat lebih menonjol
       elevation: 3,
+      // Memberikan jarak antar card agar tidak terlalu rapat
       margin: const EdgeInsets.only(bottom: 12),
 
       shape: RoundedRectangleBorder(
@@ -399,6 +403,7 @@ class OrderCard extends StatelessWidget {
           ),
 
           maxLines: 1,
+          // Menambahkan elipsis (...) jika nama terlalu panjang
           overflow: TextOverflow.ellipsis,
         ),
 
@@ -412,6 +417,7 @@ class OrderCard extends StatelessWidget {
         ),
 
         // ================= STATUS & DETAIL =================
+        // Menampilkan status pesanan dengan warna yang berbeda dan tombol untuk melihat detail
         trailing: Column(
           mainAxisSize: MainAxisSize.min,
 
@@ -445,7 +451,7 @@ class OrderCard extends StatelessWidget {
             ),
 
             const SizedBox(height: 4),
-
+            // ================= TOMBOL DETAIL =================
             GestureDetector(
               onTap: () => Navigator.push(
                 context,
